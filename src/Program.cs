@@ -32,20 +32,75 @@ namespace fhir_cs
             };
 
             //CreatePatient(fhirClient,"zzTest", "FirstFhir");
-            
-            DeletePatient(fhirClient,"2807846");
+            //string myPatientId = null;
+            //myPatientId ="2807846";
+            //DeletePatient(fhirClient, myPatientId);
 
-            List<Patient> patients = GetPatients(
+            /*List<Patient> patients = GetPatients(
                 fhirClient,
-                new string[] {"name=zzTest"});
+                new string[] {"name=zzTest"});*/
+
+            List<Patient> patients = GetPatients(fhirClient);
             System.Console.WriteLine($"Found {patients.Count} patients.");
 
-            string myPatientId = null;
+            string firstId = null;
 
+            foreach(Patient patient in patients)
+            {
+                if (string.IsNullOrEmpty(firstId))
+                {
+                    firstId = patient.Id;
+                    break;
+                }
+            }    
+
+            Patient firstPatient = ReadPatient(fhirClient,firstId); 
+
+            System.Console.WriteLine($"Read back patient: {firstPatient.Name[0].ToString()}");
+            
+            Patient updated = UpdatePatient(fhirClient, firstPatient);
+            
+            Patient readFinal = ReadPatient(fhirClient,firstPatient.Id);
             return 0;
         }
 
-        
+        /// <summary>
+        /// Update a patient to add more information
+        /// </summary>
+        /// <param name="fhirClient"></param>
+        /// <param name="patient"></param>
+        static Patient UpdatePatient(
+            FhirClient fhirClient,
+            Patient patient)
+        {
+            patient.Telecom.Add(new ContactPoint()
+            {
+                System = ContactPoint.ContactPointSystem.Phone,
+                Value = "111.111.1111",
+                Use = ContactPoint.ContactPointUse.Home,
+            });
+            patient.Gender = AdministrativeGender.Unknown;
+
+            return fhirClient.Update<Patient>(patient);
+        }
+
+        /// <summary>
+        /// Read a Patient from FHIR server, by Id
+        /// </summary>
+        /// <param name="fhirClient"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        static Patient ReadPatient(
+            FhirClient fhirClient,
+            string id)
+        {
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new ArgumentNullException(nameof(id));
+            }
+
+            return fhirClient.Read<Patient>($"Patient/{id}");                
+        }        
 
         /// <summary>
         /// Delete patient using specified id.
